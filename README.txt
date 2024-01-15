@@ -14,4 +14,6 @@
         - backendApi.js : 作為API並執行最新版本的 web3.js，補足課程中舊版 web3.js 的不足
         - 其他檔案：node_modules、package.json、package-lock.json
 3. 若要啟用此專案，請使用 node.js 執行 backendApi.js
+   1. npm install
+   2. node backendApi.js
 4. Demo影片： https://youtu.be/FnAw5ecDyAk
