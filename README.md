@@ -24,4 +24,4 @@
         - smart_contract.sol : 智能合約程式碼 
 3. 若要啟用此專案，請使用 node.js 執行 backendApi.js
 4. Demo影片： https://youtu.be/FnAw5ecDyAk
-5. 成果投影片： [連結]()
+5. 成果投影片： [連結](https://github.com/RutoDa/blockchainFinal/blob/main/%E6%88%90%E6%9E%9C%E7%B0%A1%E5%A0%B1/%E5%8D%80%E5%A1%8A%E9%8F%88%E6%9C%9F%E6%9C%AB%E5%B0%88%E9%A1%8C%E6%88%90%E6%9E%9C%E7%B0%A1%E5%A0%B1.pptx)
