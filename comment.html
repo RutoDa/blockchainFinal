@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>評論-早餐區塊樂點</title>
+    <link rel="icon" href="/logo.png" type="image/x-icon" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-wEmeIV1mKuiNpC+IOBjI7aAzPcEZeedi5yW5f2yOq55WWLwNGmvvx4Um1vskeMj0" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-p34f1UUtsS3wqzfto5wAAmdvj+osOnFyQFpp4Ua3gs/ZVWx6oOypYoCJhGGScy+8"
+        crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.js"
+        integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <script language="javascript" type="text/javascript"
+        src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.34/dist/web3.min.js"></script>
+    <style>
+        #comments-container {
+            max-width: 600px;
+            width: 100%;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin: 20px;
+        }
+
+        .comment {
+            border-bottom: 1px solid #ccc;
+            padding: 10px 0;
+        }
+
+        p {
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="order.html">早餐區塊樂點</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
+                aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavDropdown">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="order.html">點餐</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="comment.html">評論</a>
+                    </li>
+                </ul>
+            </div>
+            <form class="d-flex">
+                <b>我的地址:</b><span id="my_address" class="text-success"></span>&nbsp; | &nbsp;<b></b><span
+                    id="my_balance" class="text-success"></span>
+            </form>
+        </div>
+    </nav>
+    <br><br><br><br>
+    <div class="container">
+
+        <h1 class="text-center display-1">評論區</h1>
+        <div class="row justify-content-center">
+            <hr>
+            <div id="comments-container"></div>
+        </div>
+        <hr>
+    </div>
+
+    <script>
+        if (typeof web3 !== 'undefined') {
+            web3 = new Web3(web3.currentProvider);
+        } else {
+            // Set the provider you want from Web3.providers
+            web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:7545"));
+        }
+
+        var contract_address = "0x292BE1a326b348A5B5C0d237BE80Aa2F52F729C0";
+        var contract_abi = [
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "comment",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "rating",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "addComment",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "_productName",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "_imgUrl",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "_price",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "_description",
+                        "type": "string"
+                    }
+                ],
+                "name": "addProduct",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "order_id",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "completeOrder",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "orderId",
+                        "type": "uint256"
+                    },
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "customer",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256[]",
+                        "name": "quantities",
+                        "type": "uint256[]"
+                    }
+                ],
+                "name": "OrderPlaced",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "orderId",
+                        "type": "uint256"
+                    },
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "customer",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "PaymentReceived",
+                "type": "event"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "_orderId",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "payOrder",
+                "outputs": [],
+                "stateMutability": "payable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256[]",
+                        "name": "_quantities",
+                        "type": "uint256[]"
+                    }
+                ],
+                "name": "placeOrder",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "withdraw",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "commentId",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "comments",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "customer",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "comment",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "rating",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getAllComments",
+                "outputs": [
+                    {
+                        "internalType": "address[]",
+                        "name": "",
+                        "type": "address[]"
+                    },
+                    {
+                        "internalType": "string[]",
+                        "name": "",
+                        "type": "string[]"
+                    },
+                    {
+                        "internalType": "uint256[]",
+                        "name": "",
+                        "type": "uint256[]"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getAllNonCompletedOrder",
+                "outputs": [
+                    {
+                        "internalType": "uint256[]",
+                        "name": "",
+                        "type": "uint256[]"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getAllProducts",
+                "outputs": [
+                    {
+                        "internalType": "string[]",
+                        "name": "",
+                        "type": "string[]"
+                    },
+                    {
+                        "internalType": "string[]",
+                        "name": "",
+                        "type": "string[]"
+                    },
+                    {
+                        "internalType": "uint256[]",
+                        "name": "",
+                        "type": "uint256[]"
+                    },
+                    {
+                        "internalType": "string[]",
+                        "name": "",
+                        "type": "string[]"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "order_id",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "getOrderDetail",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "uint256[]",
+                        "name": "",
+                        "type": "uint256[]"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getOrderID",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "_index",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "getProductAtIndex",
+                "outputs": [
+                    {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getProductsCount",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "orderId",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "orders",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "customer",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isPaid",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isCompleted",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "total_price",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "owner",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "name": "Product",
+                "outputs": [
+                    {
+                        "internalType": "string",
+                        "name": "img_url",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "price",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "description",
+                        "type": "string"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        var myContract = new web3.eth.Contract(contract_abi, contract_address);
+
+        async function fetch_balance() {
+            //取得帳號
+            coinbase = await web3.eth.getCoinbase();
+            //取得帳號餘額
+            var balance = await web3.eth.getBalance(coinbase);
+            $("#my_address").text(coinbase);
+            $("#my_balance").text(Number(web3.utils.fromWei(balance)).toFixed(1) + " ETH");  //wei 轉換成 ether web3.utils.fromWei()
+        };
+        fetch_balance();
+
+        async function fetch_all_comment() {
+            const apiUrl = 'http://127.0.0.1:3000/api/comments';
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    // console.log('Addresses:', data.addresses);
+                    // console.log('Comments:', data.comments);
+                    // console.log('Ratings:', data.ratings);
+                    const commentsContainer = document.getElementById('comments-container');
+
+                    data.addresses.forEach((address, index) => {
+                        // 新增新的 div
+                        const commentDiv = document.createElement('div');
+                        // 新增 address
+                        const addressElement = document.createElement('p');
+                        addressElement.textContent = `顧客：${address}`;
+                        addressElement.className = "text-secondary";
+                        commentDiv.appendChild(addressElement);
+
+                        // 新增 comment
+                        const commentElement = document.createElement('div');
+                        commentElement.textContent = `${data.comments[index]}`;
+                        commentElement.className = "text-bg";
+                        commentElement.classList.add("fs-1");
+                        commentDiv.appendChild(commentElement);
+
+                        // 新增 rating
+                        const ratingElement = document.createElement('div');
+                        ratingElement.innerHTML = `評分: ${data.ratings[index]}/5<hr>`;
+                        ratingElement.className = "text-end";
+                        ratingElement.classList.add("fs-4");
+                        ratingElement.classList.add("text-success");
+                        commentDiv.appendChild(ratingElement);
+
+                        // add div to commentdiv
+                        commentsContainer.appendChild(commentDiv);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        };
+        fetch_all_comment();
+
+    </script>
+</body>
+
+</html>

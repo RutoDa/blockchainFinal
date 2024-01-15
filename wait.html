@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>等待-早餐區塊樂點</title>
+    <link rel="icon" href="/logo.png" type="image/x-icon" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-wEmeIV1mKuiNpC+IOBjI7aAzPcEZeedi5yW5f2yOq55WWLwNGmvvx4Um1vskeMj0" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-p34f1UUtsS3wqzfto5wAAmdvj+osOnFyQFpp4Ua3gs/ZVWx6oOypYoCJhGGScy+8"
+        crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.js"
+        integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <script language="javascript" type="text/javascript"
+        src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.34/dist/web3.min.js"></script>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="order.html">早餐區塊樂點</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
+                aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavDropdown">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="order.html">點餐</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="comment.html">評論</a>
+                    </li>
+                </ul>
+            </div>
+            <form class="d-flex">
+                <b>我的地址:</b><span id="my_address" class="text-success"></span>&nbsp; | &nbsp;<b></b><span
+                    id="my_balance" class="text-success"></span>
+            </form>
+        </div>
+    </nav>
+    <br><br><br><br>
+    <div class="container">
+
+        <h1 class="text-center display-1">訂單狀態</h1>
+        <div class="row justify-content-center">
+            <hr>
+            <h3 class="text-center">訂單資訊</h3>
+            <span id="order_id" class="text-center">訂單編號：</span>
+            <br><br>
+            <table class="table w-75 table-bordered border-secondary table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col" id="tab_header" class="text-center bg-warning">狀態</th>
+                    </tr>
+                </thead>
+                <tbody class="text-center">
+                    <td><span id="order_status">不明</span></td>
+                </tbody>
+            </table>
+            <br><br><br>
+            <hr>
+            <div class="row w-75 text-center" id="commentDiv">
+
+            </div>
+        </div>
+        <br><br>
+
+    </div>
+
+    <script>
+        if (typeof web3 !== 'undefined') {
+            web3 = new Web3(web3.currentProvider);
+        } else {
+            // Set the provider you want from Web3.providers
+            web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:7545"));
+        }
+
+
+        var contract_address = "0x292BE1a326b348A5B5C0d237BE80Aa2F52F729C0";
+        var contract_abi = [
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "comment",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "rating",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "addComment",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "_productName",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "_imgUrl",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "_price",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "_description",
+                        "type": "string"
+                    }
+                ],
+                "name": "addProduct",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "order_id",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "completeOrder",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "orderId",
+                        "type": "uint256"
+                    },
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "customer",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256[]",
+                        "name": "quantities",
+                        "type": "uint256[]"
+                    }
+                ],
+                "name": "OrderPlaced",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "orderId",
+                        "type": "uint256"
+                    },
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "customer",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "PaymentReceived",
+                "type": "event"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "_orderId",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "payOrder",
+                "outputs": [],
+                "stateMutability": "payable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256[]",
+                        "name": "_quantities",
+                        "type": "uint256[]"
+                    }
+                ],
+                "name": "placeOrder",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "withdraw",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "commentId",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "comments",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "customer",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "comment",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "rating",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getAllComments",
+                "outputs": [
+                    {
+                        "internalType": "address[]",
+                        "name": "",
+                        "type": "address[]"
+                    },
+                    {
+                        "internalType": "string[]",
+                        "name": "",
+                        "type": "string[]"
+                    },
+                    {
+                        "internalType": "uint256[]",
+                        "name": "",
+                        "type": "uint256[]"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getAllNonCompletedOrder",
+                "outputs": [
+                    {
+                        "internalType": "uint256[]",
+                        "name": "",
+                        "type": "uint256[]"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getAllProducts",
+                "outputs": [
+                    {
+                        "internalType": "string[]",
+                        "name": "",
+                        "type": "string[]"
+                    },
+                    {
+                        "internalType": "string[]",
+                        "name": "",
+                        "type": "string[]"
+                    },
+                    {
+                        "internalType": "uint256[]",
+                        "name": "",
+                        "type": "uint256[]"
+                    },
+                    {
+                        "internalType": "string[]",
+                        "name": "",
+                        "type": "string[]"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "order_id",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "getOrderDetail",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "uint256[]",
+                        "name": "",
+                        "type": "uint256[]"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getOrderID",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "_index",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "getProductAtIndex",
+                "outputs": [
+                    {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getProductsCount",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "orderId",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "orders",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "customer",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isPaid",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isCompleted",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "total_price",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "owner",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "name": "Product",
+                "outputs": [
+                    {
+                        "internalType": "string",
+                        "name": "img_url",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "price",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "description",
+                        "type": "string"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+        var myContract = new web3.eth.Contract(contract_abi, contract_address);
+
+        async function fetch_balance() {
+            //取得帳號
+            coinbase = await web3.eth.getCoinbase();
+            //取得帳號餘額
+            var balance = await web3.eth.getBalance(coinbase);
+            $("#my_address").text(coinbase);
+            $("#my_balance").text(Number(web3.utils.fromWei(balance)).toFixed(1) + " ETH");  //wei 轉換成 ether web3.utils.fromWei()
+        };
+        fetch_balance();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const order_id = urlParams.get('order_id');
+        $("#order_id").text("訂單編號：" + order_id);
+
+        async function fetch_order_detail(order_id) {
+            try {
+                const result = await myContract.methods.getOrderDetail(order_id).call();
+                const addresses = result[0];
+                const isPaid = result[1];
+                const isCompleted = result[2];
+                const dishQuantities = result[3];
+                const total_price = result[4];
+
+                if (isCompleted) {
+                    $("#order_status").text("完成！請取餐！");
+                    $("#order_status").addClass("text-success");
+                    let commentHTML = `
+                        <div class="col-8">
+                        <textarea class="form-control" id="comment" rows="3" placeholder="評論..."></textarea>
+                    </div>
+                    <div class="col-4">
+                        <span class="fs-3">評分：</span>
+                        <select class="form-select" id="rating" required>
+                            <option selected>分數</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </div>
+                    <br><br><br><br>
+                    <div class="col-12">
+                        <button id="submit_comment" class="btn btn-primary fs-3">留下評論</button><br><br>
+                    </div>
+                    `;
+                    $("#tab_header").removeClass("bg-warning");
+                    $("#tab_header").addClass("bg-success text-light");
+                    $("#commentDiv").append(commentHTML);
+                    $("#submit_comment").on("click", function () {
+
+                        myContract.methods.addComment($("#comment").val(), $("#rating").val()).send({ from: coinbase, value: "0" }).then(
+                            function (receipt) {
+                                alert("留言成功！");
+                                setTimeout(_ => { window.location.href = "comment.html" }, 2000);
+                            }
+                        ).catch(
+                            function (error) {
+                                alert("發生問題！");
+                            }
+                        )
+
+                    });
+                } else {
+                    $("#order_status").text("尚未完成！請稍等！");
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                throw error;
+            }
+        };
+        fetch_order_detail(order_id);
+    </script>
+</body>
+
+</html>

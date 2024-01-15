@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="/logo.png" type="image/x-icon" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
+
+    <title>店家管理</title>
+    <style>
+        /* 添加表格樣式 */
+        table {
+            width: 95%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        th {
+            background-color: #ffa;
+            border: 3px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+
+        td {
+            border: 3px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 60px;
+            font-weight: bold;
+            margin-top: 50px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark ">
+        <div class="container-fluid">
+            <a class="navbar-brand mb-0 h1" href="incomplete.html">早餐區塊樂點-店家管理</a>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link " href="./incomplete.html">未完成訂單</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="./ordersDetail.html">所有訂單</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="./productsDetail.html">所有商品</a>
+                    </li>
+                </ul>
+                
+            </div>
+        </div>
+    </nav>
+    <div class="container-fluid mt-3">
+        <div class="row align-items-center">
+            <div class="col-5">
+                <p class="mb-0">店家地址：<span id="my_address"></span></p>
+            </div>
+            <div class="col-3">
+                <p class="mb-0">店家餘額：<span id="my_balance"></span></p>
+            </div>
+            <div class="col-3">
+                <p class="mb-0">未提領的總營業額：<span id="_revenue"></span></p>
+            </div>
+            <div class="col-1">
+                <button type="button" class="btn btn-success w-100" onclick="withdraw()">提領</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="addProductForm" class="container mt-3" style="max-width: 1400px;padding: 20px; background-color: #C9FAFD;">
+        <div class="row">
+            <div class="col-md-6">
+                <label for="productName">商品名稱:</label>
+                <input type="text" class="form-control" id="productName" required>
+            </div>
+            <div class="col-md-6">
+                <label for="imgUrl">圖片 URL:</label>
+                <input type="text" class="form-control" id="imgUrl" required>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <label for="price">價錢(Wei):</label>
+                <input type="number" class="form-control" id="price" required>
+            </div>
+            <div class="col-md-6">
+                <label for="description">商品描述:</label>
+                <input type="text" class="form-control" id="description" required>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12 text-center mt-3">
+                <button type="button" class="btn btn-primary" onclick="addProduct()">新增商品</button>
+            </div>
+        </div>
+    </div>
+    <h1>所有商品</h1>
+    <div id="product-container" class="row mt-5">
+
+    </div>
+
+
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"
+        integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.34/dist/web3.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.1/dist/umd/popper.min.js"
+        integrity="sha384-W8fXfP3gkOKtndU4JGtKDvXbO53Wy8SZCQHczT5FMiiqmQfUpWbYdTil/SxwZgAN"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.min.js"
+        integrity="sha384-skAcpIdS7UcVUC05LJ9Dxay8AXcDYfBJqt1CJ85S/CFujBsIzCIv+l9liuYLaMQ/"
+        crossorigin="anonymous"></script>
+
+    <script>
+        if (typeof web3 !== 'undefined') {
+            web3 = new Web3(web3.currentProvider);
+        } else {
+            web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+        }
+        var coinbase;
+        var contract_address = "0x292BE1a326b348A5B5C0d237BE80Aa2F52F729C0";
+        var contract_abi = [
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "comment",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "rating",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "addComment",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "_productName",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "_imgUrl",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "_price",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "_description",
+                        "type": "string"
+                    }
+                ],
+                "name": "addProduct",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "order_id",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "completeOrder",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "orderId",
+                        "type": "uint256"
+                    },
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "customer",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256[]",
+                        "name": "quantities",
+                        "type": "uint256[]"
+                    }
+                ],
+                "name": "OrderPlaced",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "orderId",
+                        "type": "uint256"
+                    },
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "customer",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "PaymentReceived",
+                "type": "event"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "_orderId",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "payOrder",
+                "outputs": [],
+                "stateMutability": "payable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256[]",
+                        "name": "_quantities",
+                        "type": "uint256[]"
+                    }
+                ],
+                "name": "placeOrder",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "withdraw",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "commentId",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "comments",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "customer",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "comment",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "rating",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getAllComments",
+                "outputs": [
+                    {
+                        "internalType": "address[]",
+                        "name": "",
+                        "type": "address[]"
+                    },
+                    {
+                        "internalType": "string[]",
+                        "name": "",
+                        "type": "string[]"
+                    },
+                    {
+                        "internalType": "uint256[]",
+                        "name": "",
+                        "type": "uint256[]"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getAllNonCompletedOrder",
+                "outputs": [
+                    {
+                        "internalType": "uint256[]",
+                        "name": "",
+                        "type": "uint256[]"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getAllProducts",
+                "outputs": [
+                    {
+                        "internalType": "string[]",
+                        "name": "",
+                        "type": "string[]"
+                    },
+                    {
+                        "internalType": "string[]",
+                        "name": "",
+                        "type": "string[]"
+                    },
+                    {
+                        "internalType": "uint256[]",
+                        "name": "",
+                        "type": "uint256[]"
+                    },
+                    {
+                        "internalType": "string[]",
+                        "name": "",
+                        "type": "string[]"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "order_id",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "getOrderDetail",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "uint256[]",
+                        "name": "",
+                        "type": "uint256[]"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getOrderID",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "_index",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "getProductAtIndex",
+                "outputs": [
+                    {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getProductsCount",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "orderId",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "orders",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "customer",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isPaid",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isCompleted",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "total_price",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "owner",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "name": "Product",
+                "outputs": [
+                    {
+                        "internalType": "string",
+                        "name": "img_url",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "price",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "description",
+                        "type": "string"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+        var myContract = new web3.eth.Contract(contract_abi, contract_address);
+        let productName;
+
+        async function printPostsToConsole() {
+
+            //取得帳號
+            coinbase = await web3.eth.getCoinbase();
+            store_address = coinbase;
+            //取得店家帳號餘額
+            var balance = await web3.eth.getBalance(store_address);
+            $("#my_address").text(store_address);
+            $("#my_balance").text(web3.utils.fromWei(balance));  //wei 轉換成 ether web3.utils.fromWei()
+
+        };
+        printPostsToConsole();
+
+        async function showRevenue() {
+            // 調用合約中的 withdraw 函數
+            var revenue = await web3.eth.getBalance(contract_address);
+            $("#_revenue").text(web3.utils.fromWei(revenue));
+            // await myContract.methods.withdraw().send({ from: coinbase });
+            // 提示成功或其他處理
+            // console.log("Withdrawal successful!");
+        };
+        showRevenue();
+
+        //老闆進行提領，並顯示目前帳戶餘額
+        async function withdraw() {
+            await myContract.methods.withdraw().send({ from: coinbase });
+            //取得合約餘額
+            var balance = await web3.eth.getBalance(contract_address);
+            $("#_revenue").text(web3.utils.fromWei(balance));
+
+            store_address = "0x8dc3f8e5e8e946946b9dcfe0f75b8ace5c9851d1"
+            //取得帳號餘額
+            var store_balance = await web3.eth.getBalance(store_address);
+            $("#my_balance").text(web3.utils.fromWei(store_balance));
+        };
+
+        async function fetch_all_product() {
+            const apiUrl = 'http://127.0.0.1:3000/api/products';
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(products => {
+
+                    var productContainer = document.getElementById('product-container');
+
+                    while (productContainer.firstChild) {
+                        productContainer.removeChild(productContainer.firstChild);
+                    }
+
+                    for (var i = 0; i < products.product_name.length; i++) {
+
+                        // 創建元素
+                        var productWrapper = document.createElement('div');
+                        productWrapper.classList.add('product-wrapper', 'row');
+
+                        var imageDiv = document.createElement('div');
+                        imageDiv.classList.add('col-3');
+
+                        var image = document.createElement('img');
+                        image.src = products.img_url[i];
+                        image.alt = '';
+                        image.style.height = '250px';
+
+                        imageDiv.appendChild(image);
+
+                        var infoDiv = document.createElement('div');
+                        infoDiv.classList.add('col-9');
+
+                        var productName = document.createElement('h3');
+                        productName.classList.add('text-start', 'display-5');
+                        productName.textContent = products.product_name[i];
+
+                        var description = document.createElement('div');
+                        description.textContent = products.descriptions[i];
+
+                        var priceDiv = document.createElement('div');
+                        priceDiv.classList.add('text-bottom', 'fs-3');
+                        priceDiv.style.width = '20%';
+                        priceDiv.textContent = products.prices[i] + " Wei";
+
+                        infoDiv.appendChild(productName);
+                        infoDiv.appendChild(description);
+                        infoDiv.appendChild(priceDiv);
+
+                        productWrapper.appendChild(imageDiv);
+                        productWrapper.appendChild(infoDiv);
+
+                        // 添加到容器
+                        productContainer.appendChild(productWrapper);
+
+                        // 添加分隔線
+                        if (i < products.product_name.length - 1) {
+                            var separator = document.createElement('hr');
+                            separator.style.border = '1px solid';
+                            productContainer.appendChild(separator);
+                        }
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        };
+        fetch_all_product();
+
+        //新增產品資訊
+        async function addProduct() {
+            try {
+                // 獲取表單輸入的值
+                var productName = document.getElementById("productName").value;
+                var imgUrl = document.getElementById("imgUrl").value;
+                var price = document.getElementById("price").value;
+                var description = document.getElementById("description").value;
+
+                // 調用合約中的 addProduct 函數
+                await myContract.methods.addProduct(productName, imgUrl, price, description).send({ from: coinbase });
+                fetch_all_product();
+                // 提示成功或其他處理
+                console.log("Product added successfully!");
+
+            } catch (error) {
+                console.error("Error adding product:", error);
+            }
+        }
+
+    </script>
+</body>
+
+</html>
